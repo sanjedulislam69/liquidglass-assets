@@ -49,6 +49,17 @@ function Index() {
   const [glow, setGlow] = useState(45);
   const [glowSize, setGlowSize] = useState(40);
   const [glowColor, setGlowColor] = useState("#ffffff");
+  const [glowBloom, setGlowBloom] = useState(55);
+
+  // corner / edge hotspot glow
+  const [cornerGlow, setCornerGlow] = useState(80);
+  const [cornerSpread, setCornerSpread] = useState(45);
+  const [cornerColor, setCornerColor] = useState("#ffffff");
+
+  // 3D depth / refraction
+  const [depth, setDepth] = useState(60);
+  const [caustic, setCaustic] = useState(45);
+
 
   // shadow
   const [shadow, setShadow] = useState(true);
@@ -79,7 +90,36 @@ function Index() {
     return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
   };
 
-  const pad = () => Math.max(shadow ? shadowBlur * 2 : 0, glow > 0 ? glowSize * 2.2 : 0, 8);
+  const pad = () =>
+    Math.max(
+      shadow ? shadowBlur * 2 : 0,
+      glow > 0 ? glowSize * 2.2 : 0,
+      cornerGlow > 0 ? cornerSpread * 3 : 0,
+      8,
+    );
+
+  // two opposite hotspot points on the rim, driven by the light angle
+  function hotspots(x: number, y: number) {
+    const rad = (rimAngle * Math.PI) / 180;
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const ux = Math.cos(rad);
+    const uy = Math.sin(rad);
+    // project onto rounded-rect boundary
+    const t = Math.min(
+      Math.abs(ux) > 1e-6 ? Math.abs(w / 2 / ux) : Infinity,
+      Math.abs(uy) > 1e-6 ? Math.abs(h / 2 / uy) : Infinity,
+    );
+    const ax = cx + ux * t * 0.94;
+    const ay = cy + uy * t * 0.94;
+    const bx = cx - ux * t * 0.94;
+    const by = cy - uy * t * 0.94;
+    return [
+      { x: ax, y: ay, k: 1 },
+      { x: bx, y: by, k: 0.72 },
+    ];
+  }
+
 
   function drawGlass(canvas: HTMLCanvasElement, withContent: boolean) {
     const p = pad();
@@ -94,18 +134,55 @@ function Index() {
     const path = new Path2D();
     path.roundRect(x, y, w, h, r);
 
-    // outer glow
+    // outer glow (layered bloom around the whole rim)
     if (glow > 0) {
       ctx.save();
-      for (let i = 3; i >= 1; i--) {
-        ctx.shadowColor = hex(glowColor, (glow / 100) * (0.28 / i));
-        ctx.shadowBlur = glowSize * i * 0.9;
+      ctx.globalCompositeOperation = "lighter";
+      const layers = 4;
+      for (let i = layers; i >= 1; i--) {
+        ctx.shadowColor = hex(glowColor, (glow / 100) * (0.34 / i) * (0.5 + glowBloom / 100));
+        ctx.shadowBlur = glowSize * i * (0.5 + glowBloom / 100);
         ctx.strokeStyle = hex(glowColor, 0.001);
         ctx.lineWidth = 2;
         ctx.stroke(path);
       }
       ctx.restore();
     }
+
+    // corner / edge hotspot glow (light catching two opposite edges)
+    if (cornerGlow > 0) {
+      const k = cornerGlow / 100;
+      const rad0 = Math.max(24, cornerSpread * 2.4);
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (const s of hotspots(x, y)) {
+        const rg = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, rad0);
+        rg.addColorStop(0, hex(cornerColor, 0.85 * k * s.k));
+        rg.addColorStop(0.25, hex(cornerColor, 0.4 * k * s.k));
+        rg.addColorStop(0.6, hex(cornerColor, 0.12 * k * s.k));
+        rg.addColorStop(1, hex(cornerColor, 0));
+        ctx.fillStyle = rg;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, rad0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // hot bright arc riding the edge itself
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (const s of hotspots(x, y)) {
+        const rg = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, rad0 * 0.9);
+        rg.addColorStop(0, hex(cornerColor, k * s.k));
+        rg.addColorStop(0.45, hex(cornerColor, 0.28 * k * s.k));
+        rg.addColorStop(1, hex(cornerColor, 0));
+        ctx.strokeStyle = rg;
+        ctx.lineWidth = Math.max(2, bevel * 0.5);
+        ctx.stroke(path);
+      }
+      ctx.restore();
+    }
+
 
     // drop shadow
     if (shadow) {
