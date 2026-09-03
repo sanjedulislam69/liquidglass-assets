@@ -134,18 +134,55 @@ function Index() {
     const path = new Path2D();
     path.roundRect(x, y, w, h, r);
 
-    // outer glow
+    // outer glow (layered bloom around the whole rim)
     if (glow > 0) {
       ctx.save();
-      for (let i = 3; i >= 1; i--) {
-        ctx.shadowColor = hex(glowColor, (glow / 100) * (0.28 / i));
-        ctx.shadowBlur = glowSize * i * 0.9;
+      ctx.globalCompositeOperation = "lighter";
+      const layers = 4;
+      for (let i = layers; i >= 1; i--) {
+        ctx.shadowColor = hex(glowColor, (glow / 100) * (0.34 / i) * (0.5 + glowBloom / 100));
+        ctx.shadowBlur = glowSize * i * (0.5 + glowBloom / 100);
         ctx.strokeStyle = hex(glowColor, 0.001);
         ctx.lineWidth = 2;
         ctx.stroke(path);
       }
       ctx.restore();
     }
+
+    // corner / edge hotspot glow (light catching two opposite edges)
+    if (cornerGlow > 0) {
+      const k = cornerGlow / 100;
+      const rad0 = Math.max(24, cornerSpread * 2.4);
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (const s of hotspots(x, y)) {
+        const rg = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, rad0);
+        rg.addColorStop(0, hex(cornerColor, 0.85 * k * s.k));
+        rg.addColorStop(0.25, hex(cornerColor, 0.4 * k * s.k));
+        rg.addColorStop(0.6, hex(cornerColor, 0.12 * k * s.k));
+        rg.addColorStop(1, hex(cornerColor, 0));
+        ctx.fillStyle = rg;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, rad0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // hot bright arc riding the edge itself
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (const s of hotspots(x, y)) {
+        const rg = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, rad0 * 0.9);
+        rg.addColorStop(0, hex(cornerColor, k * s.k));
+        rg.addColorStop(0.45, hex(cornerColor, 0.28 * k * s.k));
+        rg.addColorStop(1, hex(cornerColor, 0));
+        ctx.strokeStyle = rg;
+        ctx.lineWidth = Math.max(2, bevel * 0.5);
+        ctx.stroke(path);
+      }
+      ctx.restore();
+    }
+
 
     // drop shadow
     if (shadow) {
