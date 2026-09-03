@@ -90,7 +90,36 @@ function Index() {
     return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
   };
 
-  const pad = () => Math.max(shadow ? shadowBlur * 2 : 0, glow > 0 ? glowSize * 2.2 : 0, 8);
+  const pad = () =>
+    Math.max(
+      shadow ? shadowBlur * 2 : 0,
+      glow > 0 ? glowSize * 2.2 : 0,
+      cornerGlow > 0 ? cornerSpread * 3 : 0,
+      8,
+    );
+
+  // two opposite hotspot points on the rim, driven by the light angle
+  function hotspots(x: number, y: number) {
+    const rad = (rimAngle * Math.PI) / 180;
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const ux = Math.cos(rad);
+    const uy = Math.sin(rad);
+    // project onto rounded-rect boundary
+    const t = Math.min(
+      Math.abs(ux) > 1e-6 ? Math.abs(w / 2 / ux) : Infinity,
+      Math.abs(uy) > 1e-6 ? Math.abs(h / 2 / uy) : Infinity,
+    );
+    const ax = cx + ux * t * 0.94;
+    const ay = cy + uy * t * 0.94;
+    const bx = cx - ux * t * 0.94;
+    const by = cy - uy * t * 0.94;
+    return [
+      { x: ax, y: ay, k: 1 },
+      { x: bx, y: by, k: 0.72 },
+    ];
+  }
+
 
   function drawGlass(canvas: HTMLCanvasElement, withContent: boolean) {
     const p = pad();
