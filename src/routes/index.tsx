@@ -49,6 +49,17 @@ function Index() {
   const [glow, setGlow] = useState(45);
   const [glowSize, setGlowSize] = useState(40);
   const [glowColor, setGlowColor] = useState("#ffffff");
+  const [glowBloom, setGlowBloom] = useState(55);
+
+  // corner / edge hotspot glow
+  const [cornerGlow, setCornerGlow] = useState(80);
+  const [cornerSpread, setCornerSpread] = useState(45);
+  const [cornerColor, setCornerColor] = useState("#ffffff");
+
+  // 3D depth / refraction
+  const [depth, setDepth] = useState(60);
+  const [caustic, setCaustic] = useState(45);
+
 
   // shadow
   const [shadow, setShadow] = useState(true);
