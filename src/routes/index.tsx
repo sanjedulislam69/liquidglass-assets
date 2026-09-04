@@ -356,12 +356,26 @@ function Index() {
     ctx.restore();
   }
 
+  const sigRef = useRef("");
   useEffect(() => {
-    if (!canvasRef.current) return;
-    drawGlass(canvasRef.current, includeContent);
-    const o = document.createElement("canvas");
-    drawGlass(o, true);
-    setOverlay(o.toDataURL("image/png"));
+    const sig = JSON.stringify([
+      w, h, radius, opacity, tint, blur, frost, bevel, bevelStrength,
+      rimLight, rimAngle, borderWidth, borderOpacity, glow, glowSize,
+      glowColor, glowBloom, cornerGlow, cornerSpread, cornerColor,
+      depth, caustic, shadow, shadowBlur, shadowOpacity, sheen, streak,
+      content, text, fontSize, textColor, fontFamily, bold, contentImg,
+      imgScale, includeContent,
+    ]);
+    if (sig === sigRef.current) return;
+    sigRef.current = sig;
+    const raf = requestAnimationFrame(() => {
+      if (!canvasRef.current) return;
+      drawGlass(canvasRef.current, includeContent);
+      const o = document.createElement("canvas");
+      drawGlass(o, true);
+      setOverlay(o.toDataURL("image/png"));
+    });
+    return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   });
 
