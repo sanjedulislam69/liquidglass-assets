@@ -219,6 +219,35 @@ function Index() {
       ctx.globalAlpha = 1;
     }
 
+    // 3D depth: light pools at the top edge, body darkens toward the bottom
+    if (depth > 0) {
+      const k = depth / 100;
+      const dg = ctx.createLinearGradient(x, y, x, y + h);
+      dg.addColorStop(0, `rgba(0,0,0,0)`);
+      dg.addColorStop(0.55, `rgba(0,0,0,${0.06 * k})`);
+      dg.addColorStop(1, `rgba(0,0,0,${0.22 * k})`);
+      ctx.fillStyle = dg;
+      ctx.fillRect(x, y, w, h);
+      // refracted light band just inside the top edge
+      const tb = ctx.createLinearGradient(x, y, x, y + Math.min(h * 0.3, bevel * 2.2 + 24));
+      tb.addColorStop(0, hex("#ffffff", 0.32 * k));
+      tb.addColorStop(1, hex("#ffffff", 0));
+      ctx.fillStyle = tb;
+      ctx.fillRect(x, y, w, Math.min(h * 0.3, bevel * 2.2 + 24));
+    }
+
+    // caustic: bright refracted band hugging the bottom inside edge
+    if (caustic > 0) {
+      const k = caustic / 100;
+      const ch = Math.min(h * 0.42, bevel * 1.6 + 34);
+      const cg = ctx.createLinearGradient(x, y + h, x, y + h - ch);
+      cg.addColorStop(0, hex("#ffffff", 0.5 * k));
+      cg.addColorStop(0.4, hex("#ffffff", 0.16 * k));
+      cg.addColorStop(1, hex("#ffffff", 0));
+      ctx.fillStyle = cg;
+      ctx.fillRect(x, y + h - ch, w, ch);
+    }
+
     // top sheen
     if (sheen > 0) {
       const s = ctx.createLinearGradient(x, y, x, y + h * 0.55);
@@ -436,6 +465,18 @@ function Index() {
             </Row>
             <Row label="Glow color">
               <input type="color" value={glowColor} onChange={(e) => setGlowColor(e.target.value)} />
+            </Row>
+            <Row label={`Bloom ${glowBloom}%`}>
+              <input type="range" min={0} max={100} value={glowBloom} onChange={(e) => setGlowBloom(+e.target.value)} className="w-full" />
+            </Row>
+            <Row label={`Edge glow ${cornerGlow}%`}>
+              <input type="range" min={0} max={100} value={cornerGlow} onChange={(e) => setCornerGlow(+e.target.value)} className="w-full" />
+            </Row>
+            <Row label={`Edge spread ${cornerSpread}`}>
+              <input type="range" min={0} max={120} value={cornerSpread} onChange={(e) => setCornerSpread(+e.target.value)} className="w-full" />
+            </Row>
+            <Row label="Edge glow color">
+              <input type="color" value={cornerColor} onChange={(e) => setCornerColor(e.target.value)} />
             </Row>
             <Row label="Drop shadow">
               <input type="checkbox" checked={shadow} onChange={(e) => setShadow(e.target.checked)} />
