@@ -83,7 +83,7 @@ function Index() {
   const [includeContent, setIncludeContent] = useState(true);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [overlay, setOverlay] = useState<string>("");
+  const liveCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const hex = (c: string, a: number) => {
     const n = parseInt(c.replace("#", ""), 16);
@@ -371,9 +371,12 @@ function Index() {
     const raf = requestAnimationFrame(() => {
       if (!canvasRef.current) return;
       drawGlass(canvasRef.current, includeContent);
-      const o = document.createElement("canvas");
-      drawGlass(o, true);
-      setOverlay(o.toDataURL("image/png"));
+      const liveCanvas = liveCanvasRef.current;
+      const liveContext = liveCanvas?.getContext("2d");
+      if (!liveCanvas || !liveContext) return;
+      liveCanvas.width = canvasRef.current.width;
+      liveCanvas.height = canvasRef.current.height;
+      liveContext.drawImage(canvasRef.current, 0, 0);
     });
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -631,9 +634,11 @@ function Index() {
                     backdropFilter: `blur(${blur}px) saturate(170%)`,
                   }}
                 />
-                {overlay && (
-                  <img src={overlay} alt="Glass preview" className="absolute inset-0 h-full w-full" />
-                )}
+                <canvas
+                  ref={liveCanvasRef}
+                  aria-label="Glass preview"
+                  className="pointer-events-none absolute inset-0 h-full w-full"
+                />
               </div>
             </div>
           </div>
