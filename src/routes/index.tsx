@@ -453,6 +453,12 @@ function Index() {
             <Row label={`Hairline op ${borderOpacity}%`}>
               <input type="range" min={0} max={100} value={borderOpacity} onChange={(e) => setBorderOpacity(+e.target.value)} className="w-full" />
             </Row>
+            <Row label={`3D depth ${depth}%`}>
+              <input type="range" min={0} max={100} value={depth} onChange={(e) => setDepth(+e.target.value)} className="w-full" />
+            </Row>
+            <Row label={`Caustic ${caustic}%`}>
+              <input type="range" min={0} max={100} value={caustic} onChange={(e) => setCaustic(+e.target.value)} className="w-full" />
+            </Row>
           </section>
 
           <section className="rounded-md border p-3">
