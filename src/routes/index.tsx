@@ -80,10 +80,15 @@ function Index() {
   const [contentImg, setContentImg] = useState<HTMLImageElement | null>(null);
   const [imgScale, setImgScale] = useState(70);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
+  const [bgSize, setBgSize] = useState<{ w: number; h: number }>({ w: 1920, h: 1080 });
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [stageW, setStageW] = useState(900);
   const [includeContent, setIncludeContent] = useState(true);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const liveCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ dx: number; dy: number } | null>(null);
 
   const hex = (c: string, a: number) => {
     const n = parseInt(c.replace("#", ""), 16);
