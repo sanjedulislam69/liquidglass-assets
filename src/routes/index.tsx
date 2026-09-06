@@ -402,6 +402,39 @@ function Index() {
     reader.readAsDataURL(file);
   }
 
+  // measure the stage column so the background can be fit to it
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setStageW(el.clientWidth));
+    ro.observe(el);
+    setStageW(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+
+  const MAX_STAGE_H = 620;
+  const scale = Math.min(stageW / bgSize.w, MAX_STAGE_H / bgSize.h, 1);
+  const dispW = bgSize.w * scale;
+  const dispH = bgSize.h * scale;
+  const glassPos = pos ?? { x: (bgSize.w - w) / 2, y: (bgSize.h - h) / 2 };
+
+  function onDragStart(e: React.PointerEvent) {
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = {
+      dx: e.clientX / scale - glassPos.x,
+      dy: e.clientY / scale - glassPos.y,
+    };
+  }
+  function onDragMove(e: React.PointerEvent) {
+    const d = dragRef.current;
+    if (!d) return;
+    setPos({ x: e.clientX / scale - d.dx, y: e.clientY / scale - d.dy });
+  }
+  function onDragEnd() {
+    dragRef.current = null;
+  }
+
   const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="flex items-center gap-2 py-1">
       <span className="w-36 shrink-0 text-xs text-muted-foreground">{label}</span>
