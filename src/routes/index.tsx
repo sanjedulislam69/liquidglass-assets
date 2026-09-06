@@ -413,7 +413,7 @@ function Index() {
   }, []);
 
   const MAX_STAGE_H = 620;
-  const scale = Math.min(stageW / bgSize.w, MAX_STAGE_H / bgSize.h, 1);
+  const scale = Math.min(Math.max(stageW - 20, 200) / bgSize.w, MAX_STAGE_H / bgSize.h, 1);
   const dispW = bgSize.w * scale;
   const dispH = bgSize.h * scale;
   const glassPos = pos ?? { x: (bgSize.w - w) / 2, y: (bgSize.h - h) / 2 };
@@ -664,7 +664,7 @@ function Index() {
           </section>
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <div ref={stageRef}>
             <div className="mb-2 flex items-center justify-between">
               <h2 className="font-semibold">Scene preview</h2>
