@@ -59,6 +59,7 @@ function Index() {
   // 3D depth / refraction
   const [depth, setDepth] = useState(60);
   const [caustic, setCaustic] = useState(45);
+  const [droplet, setDroplet] = useState(false);
 
 
   // shadow
@@ -253,6 +254,34 @@ function Index() {
       ctx.fillRect(x, y + h - ch, w, ch);
     }
 
+    // 3D droplet: convex water-drop lens look
+    if (droplet) {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const R = Math.max(w, h) * 0.85;
+      // domed bulge highlight, pooled slightly above center
+      const bg2 = ctx.createRadialGradient(cx, y + h * 0.3, 0, cx, y + h * 0.3, R);
+      bg2.addColorStop(0, "rgba(255,255,255,0.34)");
+      bg2.addColorStop(0.3, "rgba(255,255,255,0.10)");
+      bg2.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = bg2;
+      ctx.fillRect(x, y, w, h);
+      // meniscus: rim darkens toward the edges like a water drop
+      const eg2 = ctx.createRadialGradient(cx, cy, Math.min(w, h) * 0.18, cx, cy, R);
+      eg2.addColorStop(0, "rgba(0,0,0,0)");
+      eg2.addColorStop(0.65, "rgba(0,0,0,0.06)");
+      eg2.addColorStop(1, "rgba(0,0,0,0.30)");
+      ctx.fillStyle = eg2;
+      ctx.fillRect(x, y, w, h);
+      // bright refracted crescent along the bottom rim
+      const cc2 = ctx.createRadialGradient(cx, y + h, 0, cx, y + h, Math.min(w, h) * 0.95);
+      cc2.addColorStop(0, "rgba(255,255,255,0.55)");
+      cc2.addColorStop(0.25, "rgba(255,255,255,0.14)");
+      cc2.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = cc2;
+      ctx.fillRect(x, y, w, h);
+    }
+
     // top sheen
     if (sheen > 0) {
       const s = ctx.createLinearGradient(x, y, x, y + h * 0.55);
@@ -367,7 +396,7 @@ function Index() {
       w, h, radius, opacity, tint, blur, frost, bevel, bevelStrength,
       rimLight, rimAngle, borderWidth, borderOpacity, glow, glowSize,
       glowColor, glowBloom, cornerGlow, cornerSpread, cornerColor,
-      depth, caustic, shadow, shadowBlur, shadowOpacity, sheen, streak,
+      depth, caustic, droplet, shadow, shadowBlur, shadowOpacity, sheen, streak,
       content, text, fontSize, textColor, fontFamily, bold, contentImg,
       imgScale, includeContent,
     ]);
@@ -471,8 +500,11 @@ function Index() {
             <Row label={`Fill ${opacity}%`}>
               <input type="range" min={0} max={60} value={opacity} onChange={(e) => setOpacity(+e.target.value)} className="w-full" />
             </Row>
-            <Row label="Tint">
+            <Row label="Glass color">
               <input type="color" value={tint} onChange={(e) => setTint(e.target.value)} />
+            </Row>
+            <Row label="3D droplet">
+              <input type="checkbox" checked={droplet} onChange={(e) => setDroplet(e.target.checked)} />
             </Row>
             <Row label={`Preview blur ${blur}`}>
               <input type="range" min={0} max={60} value={blur} onChange={(e) => setBlur(+e.target.value)} className="w-full" />
