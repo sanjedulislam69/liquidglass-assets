@@ -80,10 +80,15 @@ function Index() {
   const [contentImg, setContentImg] = useState<HTMLImageElement | null>(null);
   const [imgScale, setImgScale] = useState(70);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
+  const [bgSize, setBgSize] = useState<{ w: number; h: number }>({ w: 1920, h: 1080 });
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [stageW, setStageW] = useState(900);
   const [includeContent, setIncludeContent] = useState(true);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const liveCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ dx: number; dy: number } | null>(null);
 
   const hex = (c: string, a: number) => {
     const n = parseInt(c.replace("#", ""), 16);
@@ -397,6 +402,39 @@ function Index() {
     reader.readAsDataURL(file);
   }
 
+  // measure the stage column so the background can be fit to it
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setStageW(el.clientWidth));
+    ro.observe(el);
+    setStageW(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+
+  const MAX_STAGE_H = 620;
+  const scale = Math.min(Math.max(stageW - 20, 200) / bgSize.w, MAX_STAGE_H / bgSize.h, 1);
+  const dispW = bgSize.w * scale;
+  const dispH = bgSize.h * scale;
+  const glassPos = pos ?? { x: (bgSize.w - w) / 2, y: (bgSize.h - h) / 2 };
+
+  function onDragStart(e: React.PointerEvent) {
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = {
+      dx: e.clientX / scale - glassPos.x,
+      dy: e.clientY / scale - glassPos.y,
+    };
+  }
+  function onDragMove(e: React.PointerEvent) {
+    const d = dragRef.current;
+    if (!d) return;
+    setPos({ x: e.clientX / scale - d.dx, y: e.clientY / scale - d.dy });
+  }
+  function onDragEnd() {
+    dragRef.current = null;
+  }
+
   const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="flex items-center gap-2 py-1">
       <span className="w-36 shrink-0 text-xs text-muted-foreground">{label}</span>
@@ -591,17 +629,28 @@ function Index() {
           </section>
 
           <section className="rounded-md border p-3">
-            <h2 className="mb-2 font-semibold">Preview background</h2>
+            <h2 className="mb-2 font-semibold">Preview background (video frame)</h2>
             <input
               type="file"
               accept="image/*"
               className="text-xs"
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) loadFile(f, setBgUrl);
+                if (!f) return;
+                loadFile(f, (url) => {
+                  const img = new Image();
+                  img.onload = () => {
+                    setBgSize({ w: img.naturalWidth, h: img.naturalHeight });
+                    setPos(null);
+                    setBgUrl(url);
+                  };
+                  img.src = url;
+                });
               }}
             />
-            <p className="mt-2 text-xs text-muted-foreground">Preview only — never exported.</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Preview only — never exported. Drag the glass on the frame to place it.
+            </p>
           </section>
 
           <section className="rounded-md border p-3">
@@ -615,32 +664,67 @@ function Index() {
           </section>
         </div>
 
-        <div className="space-y-6">
-          <div>
-            <h2 className="mb-2 font-semibold">Live preview (real blur + exported glass on top)</h2>
-            <div
-              className="relative flex min-h-[460px] items-center justify-center overflow-auto rounded-md border bg-[repeating-conic-gradient(#e5e5e5_0_25%,#ffffff_0_50%)] bg-[length:24px_24px] p-6"
-              style={bgUrl ? { backgroundImage: `url(${bgUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
-            >
-              <div className="relative shrink-0" style={{ width: w + p * 2, height: h + p * 2 }}>
-                <div
-                  className="absolute"
-                  style={{
-                    left: p,
-                    top: p,
-                    width: w,
-                    height: h,
-                    borderRadius: radius,
-                    backdropFilter: `blur(${blur}px) saturate(170%)`,
-                  }}
-                />
-                <canvas
-                  ref={liveCanvasRef}
-                  aria-label="Glass preview"
-                  className="pointer-events-none absolute inset-0 h-full w-full"
-                />
+        <div className="min-w-0 space-y-6">
+          <div ref={stageRef}>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="font-semibold">Scene preview</h2>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span>
+                  {bgSize.w}×{bgSize.h} · {Math.round(scale * 100)}%
+                </span>
+                <button className="rounded border px-2 py-1" onClick={() => setPos(null)}>
+                  Center glass
+                </button>
               </div>
             </div>
+            <div className="flex justify-center rounded-md border bg-[repeating-conic-gradient(#e5e5e5_0_25%,#ffffff_0_50%)] bg-[length:24px_24px] p-2">
+              <div
+                className="relative overflow-hidden"
+                style={{
+                  width: dispW,
+                  height: dispH,
+                  backgroundImage: bgUrl ? `url(${bgUrl})` : undefined,
+                  backgroundSize: "100% 100%",
+                  backgroundColor: bgUrl ? undefined : "#111",
+                }}
+                onPointerMove={onDragMove}
+                onPointerUp={onDragEnd}
+                onPointerCancel={onDragEnd}
+              >
+                <div
+                  className="absolute cursor-move touch-none"
+                  style={{
+                    left: (glassPos.x - p) * scale,
+                    top: (glassPos.y - p) * scale,
+                    width: (w + p * 2) * scale,
+                    height: (h + p * 2) * scale,
+                  }}
+                  onPointerDown={onDragStart}
+                >
+                  <div
+                    className="pointer-events-none absolute"
+                    style={{
+                      left: p * scale,
+                      top: p * scale,
+                      width: w * scale,
+                      height: h * scale,
+                      borderRadius: radius * scale,
+                      backdropFilter: `blur(${blur * scale}px) saturate(170%)`,
+                    }}
+                  />
+                  <canvas
+                    ref={liveCanvasRef}
+                    aria-label="Glass preview"
+                    className="pointer-events-none absolute inset-0 h-full w-full"
+                  />
+                </div>
+              </div>
+            </div>
+            {!bgUrl && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Upload a frame from your video on the left to preview the glass on it.
+              </p>
+            )}
           </div>
 
           <div>
