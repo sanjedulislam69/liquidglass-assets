@@ -659,6 +659,8 @@ function Index() {
               </>
             )}
           </section>
+          </>
+          )}
 
           <section className="rounded-md border p-3">
             <h2 className="mb-2 font-semibold">Preview background (video frame)</h2>
