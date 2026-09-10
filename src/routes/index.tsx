@@ -132,6 +132,120 @@ function Index() {
   }
 
 
+  // ---------------------------------------------------------------
+  // Real Apple-style liquid glass (preset mode): almost fully clear
+  // body + a thick refracting 3D edge with a bright/dark/bright
+  // profile and directional light on two opposite corners.
+  // ---------------------------------------------------------------
+  function drawApple(ctx: CanvasRenderingContext2D, x: number, y: number) {
+    const r = Math.min(w, h) / 2;
+    const path = new Path2D();
+    path.roundRect(x, y, w, h, r);
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const clear = preset === "clear";
+    const frosted = preset === "frosted";
+    const thick = Math.max(8, Math.min(w, h) * (frosted ? 0.2 : clear ? 0.14 : 0.17));
+
+    // directional axis (light from top-left, bounce bottom-right)
+    const rad = (315 * Math.PI) / 180;
+    const len = Math.max(w, h) / 2;
+    const axis = (a0: number, aMid: number, a1: number) => {
+      const g2 = ctx.createLinearGradient(
+        cx - Math.cos(rad) * len,
+        cy - Math.sin(rad) * len,
+        cx + Math.cos(rad) * len,
+        cy + Math.sin(rad) * len,
+      );
+      g2.addColorStop(0, `rgba(255,255,255,${a0})`);
+      g2.addColorStop(0.42, `rgba(255,255,255,${aMid})`);
+      g2.addColorStop(0.58, `rgba(255,255,255,${aMid})`);
+      g2.addColorStop(1, `rgba(255,255,255,${a1})`);
+      return g2;
+    };
+
+    // soft contact shadow
+    ctx.save();
+    ctx.shadowColor = `rgba(0,0,0,0.22)`;
+    ctx.shadowBlur = Math.max(24, Math.min(w, h) * 0.28);
+    ctx.shadowOffsetY = Math.max(8, Math.min(w, h) * 0.09);
+    ctx.fillStyle = "rgba(0,0,0,0.9)";
+    ctx.fill(path);
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.fill(path);
+    ctx.restore();
+
+    ctx.save();
+    ctx.clip(path);
+
+    // body: barely-there tint, clearer in the middle
+    const bodyA = frosted ? 0.16 : clear ? 0.03 : 0.07;
+    const bg = ctx.createLinearGradient(x, y, x, y + h);
+    bg.addColorStop(0, hex(tint, bodyA * 1.5));
+    bg.addColorStop(0.5, hex(tint, bodyA * 0.5));
+    bg.addColorStop(1, hex(tint, bodyA * 1.1));
+    ctx.fillStyle = bg;
+    ctx.fillRect(x, y, w, h);
+
+    if (frosted) {
+      const n = Math.floor((w * h) / 1400);
+      ctx.globalAlpha = 0.05;
+      for (let i = 0; i < n; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? "#ffffff" : "#000000";
+        ctx.fillRect(x + Math.random() * w, y + Math.random() * h, 1.2, 1.2);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // thick refracting edge: bright rim -> dark dip -> soft inner bounce
+    const steps = Math.max(24, Math.round(thick * 2));
+    for (let i = 0; i < steps; i++) {
+      const u = i / (steps - 1);
+      const inset = u * thick;
+      const bright =
+        Math.exp(-Math.pow((u - 0.04) / 0.1, 2)) * 0.75 +
+        Math.exp(-Math.pow((u - 0.6) / 0.3, 2)) * 0.14;
+      const dark = Math.exp(-Math.pow((u - 0.26) / 0.13, 2)) * 0.26;
+      const rp = new Path2D();
+      rp.roundRect(
+        x + inset,
+        y + inset,
+        Math.max(1, w - inset * 2),
+        Math.max(1, h - inset * 2),
+        Math.max(0, r - inset),
+      );
+      ctx.lineWidth = thick / steps + 1.2;
+      if (dark > 0.004) {
+        ctx.strokeStyle = `rgba(0,0,0,${dark})`;
+        ctx.stroke(rp);
+      }
+      if (bright > 0.004) {
+        ctx.strokeStyle = axis(bright, bright * 0.22, bright * 0.85);
+        ctx.stroke(rp);
+      }
+    }
+
+    // gentle top sheen and bottom refracted bounce
+    const sh = ctx.createLinearGradient(x, y, x, y + h * 0.5);
+    sh.addColorStop(0, `rgba(255,255,255,${clear ? 0.14 : 0.18})`);
+    sh.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = sh;
+    ctx.fillRect(x, y, w, h * 0.5);
+
+    const bh = Math.min(h * 0.35, thick * 1.6);
+    const bo = ctx.createLinearGradient(x, y + h, x, y + h - bh);
+    bo.addColorStop(0, "rgba(255,255,255,0.22)");
+    bo.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = bo;
+    ctx.fillRect(x, y + h - bh, w, bh);
+
+    // crisp outer hairline, brightest on the two lit corners
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = axis(0.95, 0.3, 0.8);
+    ctx.stroke(path);
+    ctx.restore();
+  }
+
   function drawGlass(canvas: HTMLCanvasElement, withContent: boolean) {
     const p = pad();
     canvas.width = w + p * 2;
@@ -141,9 +255,14 @@ function Index() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const x = p;
     const y = p;
+    if (simple) {
+      drawApple(ctx, x, y);
+      return;
+    }
     const r = Math.min(radius, w / 2, h / 2);
     const path = new Path2D();
     path.roundRect(x, y, w, h, r);
+
 
     // outer glow (layered bloom around the whole rim)
     if (glow > 0) {
