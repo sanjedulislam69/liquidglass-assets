@@ -102,12 +102,15 @@ function Index() {
   };
 
   const pad = () =>
-    Math.max(
-      shadow ? shadowBlur * 2 : 0,
-      glow > 0 ? glowSize * 2.2 : 0,
-      cornerGlow > 0 ? cornerSpread * 3 : 0,
-      8,
-    );
+    simple
+      ? Math.max(40, Math.min(w, h) * 0.5)
+      : Math.max(
+          shadow ? shadowBlur * 2 : 0,
+          glow > 0 ? glowSize * 2.2 : 0,
+          cornerGlow > 0 ? cornerSpread * 3 : 0,
+          8,
+        );
+
 
   // two opposite hotspot points on the rim, driven by the light angle
   function hotspots(x: number, y: number) {
