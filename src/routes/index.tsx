@@ -24,6 +24,7 @@ export const Route = createFileRoute("/")({
 });
 
 type Content = "none" | "text" | "image";
+type Preset = "regular" | "clear" | "frosted";
 
 function Index() {
   // shape
@@ -60,6 +61,10 @@ function Index() {
   const [depth, setDepth] = useState(60);
   const [caustic, setCaustic] = useState(45);
   const [droplet, setDroplet] = useState(false);
+
+  // pre-made Apple-style presets
+  const [simple, setSimple] = useState(false);
+  const [preset, setPreset] = useState<Preset>("regular");
 
 
   // shadow
@@ -431,6 +436,54 @@ function Index() {
     reader.readAsDataURL(file);
   }
 
+  // Apple-style tuned presets: restrained specular, thin bright hairline,
+  // soft wide shadow, gentle inner bevel — no heavy glow.
+  function applyApplePreset(v: Preset) {
+    setRadius(Math.round(Math.min(w, h) * 0.45));
+    setRimAngle(300);
+    setBevel(Math.max(14, Math.round(Math.min(w, h) * 0.09)));
+    setBevelStrength(62);
+    setRimLight(58);
+    setBorderWidth(1);
+    setBorderOpacity(46);
+    setGlow(10);
+    setGlowSize(20);
+    setGlowColor("#ffffff");
+    setGlowBloom(22);
+    setCornerGlow(34);
+    setCornerSpread(24);
+    setCornerColor("#ffffff");
+    setDepth(34);
+    setCaustic(20);
+    setDroplet(false);
+    setShadow(true);
+    setShadowBlur(46);
+    setShadowOpacity(20);
+    setStreak(10);
+    setContent("none");
+    if (v === "clear") {
+      setOpacity(8);
+      setBlur(14);
+      setFrost(2);
+      setSheen(26);
+    } else if (v === "frosted") {
+      setOpacity(22);
+      setBlur(34);
+      setFrost(13);
+      setSheen(18);
+    } else {
+      setOpacity(13);
+      setBlur(22);
+      setFrost(5);
+      setSheen(22);
+    }
+  }
+
+  // in preset mode the corner radius always follows the size (Apple capsule feel)
+  useEffect(() => {
+    if (simple) setRadius(Math.round(Math.min(w, h) * 0.45));
+  }, [simple, w, h]);
+
   // measure the stage column so the background can be fit to it
   useEffect(() => {
     const el = stageRef.current;
@@ -482,6 +535,58 @@ function Index() {
 
       <div className="grid gap-8 lg:grid-cols-[360px_1fr]">
         <div className="space-y-4">
+          <section className="rounded-md border p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="font-semibold">Pre-made Apple glass</h2>
+              <label className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={simple}
+                  onChange={(e) => {
+                    setSimple(e.target.checked);
+                    if (e.target.checked) applyApplePreset(preset);
+                  }}
+                />
+                Preset mode
+              </label>
+            </div>
+            <Row label="Preset">
+              <select
+                value={preset}
+                onChange={(e) => {
+                  const v = e.target.value as Preset;
+                  setPreset(v);
+                  applyApplePreset(v);
+                }}
+                className="rounded border bg-background px-2 py-1 text-sm"
+              >
+                <option value="regular">Regular (Apple)</option>
+                <option value="clear">Clear</option>
+                <option value="frosted">Frosted</option>
+              </select>
+            </Row>
+            <Row label={`Width ${w}px`}>
+              <input type="range" min={50} max={1920} value={w} onChange={(e) => setW(+e.target.value)} className="w-full" />
+            </Row>
+            <Row label={`Height ${h}px`}>
+              <input type="range" min={40} max={1080} value={h} onChange={(e) => setH(+e.target.value)} className="w-full" />
+            </Row>
+            <Row label="Glass color">
+              <input type="color" value={tint} onChange={(e) => setTint(e.target.value)} />
+            </Row>
+            <button
+              onClick={() => applyApplePreset(preset)}
+              className="mt-2 w-full rounded border px-3 py-1.5 text-xs"
+            >
+              Load preset
+            </button>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Preset mode hides all advanced controls — set size and color, then export.
+            </p>
+          </section>
+
+          {!simple && (
+          <>
           <section className="rounded-md border p-3">
             <h2 className="mb-2 font-semibold">Shape</h2>
             <Row label={`Width ${w}px`}>
@@ -659,6 +764,8 @@ function Index() {
               </>
             )}
           </section>
+          </>
+          )}
 
           <section className="rounded-md border p-3">
             <h2 className="mb-2 font-semibold">Preview background (video frame)</h2>
