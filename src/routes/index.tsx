@@ -523,7 +523,7 @@ function Index() {
       w, h, radius, opacity, tint, blur, frost, bevel, bevelStrength,
       rimLight, rimAngle, borderWidth, borderOpacity, glow, glowSize,
       glowColor, glowBloom, cornerGlow, cornerSpread, cornerColor,
-      depth, caustic, droplet, shadow, shadowBlur, shadowOpacity, sheen, streak,
+      depth, caustic, droplet, shadow, shadowBlur, shadowOpacity, sheen, streak, simple, preset,
       content, text, fontSize, textColor, fontFamily, bold, contentImg,
       imgScale, includeContent,
     ]);
