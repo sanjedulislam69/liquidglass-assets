@@ -436,6 +436,54 @@ function Index() {
     reader.readAsDataURL(file);
   }
 
+  // Apple-style tuned presets: restrained specular, thin bright hairline,
+  // soft wide shadow, gentle inner bevel — no heavy glow.
+  function applyApplePreset(v: Preset) {
+    setRadius(Math.round(Math.min(w, h) * 0.45));
+    setRimAngle(300);
+    setBevel(Math.max(14, Math.round(Math.min(w, h) * 0.09)));
+    setBevelStrength(62);
+    setRimLight(58);
+    setBorderWidth(1);
+    setBorderOpacity(46);
+    setGlow(10);
+    setGlowSize(20);
+    setGlowColor("#ffffff");
+    setGlowBloom(22);
+    setCornerGlow(34);
+    setCornerSpread(24);
+    setCornerColor("#ffffff");
+    setDepth(34);
+    setCaustic(20);
+    setDroplet(false);
+    setShadow(true);
+    setShadowBlur(46);
+    setShadowOpacity(20);
+    setStreak(10);
+    setContent("none");
+    if (v === "clear") {
+      setOpacity(8);
+      setBlur(14);
+      setFrost(2);
+      setSheen(26);
+    } else if (v === "frosted") {
+      setOpacity(22);
+      setBlur(34);
+      setFrost(13);
+      setSheen(18);
+    } else {
+      setOpacity(13);
+      setBlur(22);
+      setFrost(5);
+      setSheen(22);
+    }
+  }
+
+  // in preset mode the corner radius always follows the size (Apple capsule feel)
+  useEffect(() => {
+    if (simple) setRadius(Math.round(Math.min(w, h) * 0.45));
+  }, [simple, w, h]);
+
   // measure the stage column so the background can be fit to it
   useEffect(() => {
     const el = stageRef.current;
