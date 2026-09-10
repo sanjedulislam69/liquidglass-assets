@@ -61,6 +61,10 @@ function Index() {
   const [caustic, setCaustic] = useState(45);
   const [droplet, setDroplet] = useState(false);
 
+  // pre-made Apple-style presets
+  const [simple, setSimple] = useState(false);
+  const [preset, setPreset] = useState<Preset>("regular");
+
 
   // shadow
   const [shadow, setShadow] = useState(true);
