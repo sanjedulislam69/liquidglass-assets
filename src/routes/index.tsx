@@ -24,6 +24,7 @@ export const Route = createFileRoute("/")({
 });
 
 type Content = "none" | "text" | "image";
+type Preset = "regular" | "clear" | "frosted";
 
 function Index() {
   // shape
