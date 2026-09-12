@@ -138,13 +138,19 @@ function Index() {
   // Borderless liquid lens used by preset mode. All shading stays inside
   // the shape: there is intentionally no outline, glow, or outside shadow.
   function drawApple(ctx: CanvasRenderingContext2D, x: number, y: number) {
-    const r = Math.min(w, h) / 2;
+    const r = Math.min(radius, w / 2, h / 2);
     const path = new Path2D();
     path.roundRect(x, y, w, h, r);
     const clear = preset === "clear";
     const frosted = preset === "frosted";
-    const edge = Math.max(18, Math.min(w, h) * 0.24);
-    const bodyAlpha = frosted ? 0.11 : clear ? 0.018 : 0.045;
+    const depthK = depth / 100;
+    // Depth makes the glass thicker / more visible on bright footage.
+    const edge = Math.max(14, Math.min(w, h) * (0.16 + 0.34 * depthK));
+    const bodyAlpha = frosted
+      ? 0.08 + 0.09 * depthK
+      : clear
+        ? 0.012 + 0.04 * depthK
+        : 0.035 + 0.06 * depthK;
 
     ctx.save();
     ctx.clip(path);
@@ -166,36 +172,36 @@ function Index() {
     );
     dome.addColorStop(0, hex(tint, clear ? 0.012 : 0.025));
     dome.addColorStop(0.58, "rgba(255,255,255,0)");
-    dome.addColorStop(0.84, "rgba(0,0,0,0.025)");
-    dome.addColorStop(1, "rgba(0,0,0,0.11)");
+    dome.addColorStop(0.84, "rgba(0,0,0,0.02 + 0.04 * depthK)");
+    dome.addColorStop(1, `rgba(0,0,0,${0.06 + 0.14 * depthK})`);
     ctx.fillStyle = dome;
     ctx.fillRect(x, y, w, h);
 
     const topLens = ctx.createLinearGradient(x, y, x, y + edge);
-    topLens.addColorStop(0, hex(tint, clear ? 0.11 : 0.15));
-    topLens.addColorStop(0.18, hex(tint, clear ? 0.055 : 0.075));
+    topLens.addColorStop(0, hex(tint, (clear ? 0.09 : 0.12) * (0.55 + 0.82 * depthK)));
+    topLens.addColorStop(0.18, hex(tint, (clear ? 0.045 : 0.06) * (0.6 + 0.7 * depthK)));
     topLens.addColorStop(1, "rgba(255,255,255,0)");
     ctx.fillStyle = topLens;
     ctx.fillRect(x, y, w, edge);
 
     const bottomLens = ctx.createLinearGradient(x, y + h, x, y + h - edge * 1.15);
-    bottomLens.addColorStop(0, "rgba(255,255,255,0.19)");
-    bottomLens.addColorStop(0.2, hex(tint, 0.075));
-    bottomLens.addColorStop(0.62, "rgba(0,0,0,0.025)");
+    bottomLens.addColorStop(0, `rgba(255,255,255,${0.12 + 0.16 * depthK})`);
+    bottomLens.addColorStop(0.2, hex(tint, 0.06 * (0.5 + 0.9 * depthK)));
+    bottomLens.addColorStop(0.62, `rgba(0,0,0,${0.015 + 0.03 * depthK})`);
     bottomLens.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = bottomLens;
     ctx.fillRect(x, y + h - edge * 1.15, w, edge * 1.15);
 
     const leftLens = ctx.createLinearGradient(x, y, x + edge, y);
-    leftLens.addColorStop(0, "rgba(255,255,255,0.12)");
-    leftLens.addColorStop(0.28, hex(tint, 0.045));
+    leftLens.addColorStop(0, `rgba(255,255,255,${0.08 + 0.12 * depthK})`);
+    leftLens.addColorStop(0.28, hex(tint, 0.035 * (0.5 + 0.9 * depthK)));
     leftLens.addColorStop(1, "rgba(255,255,255,0)");
     ctx.fillStyle = leftLens;
     ctx.fillRect(x, y, edge, h);
 
     const rightLens = ctx.createLinearGradient(x + w, y, x + w - edge, y);
-    rightLens.addColorStop(0, "rgba(0,0,0,0.095)");
-    rightLens.addColorStop(0.28, "rgba(0,0,0,0.035)");
+    rightLens.addColorStop(0, `rgba(0,0,0,${0.07 + 0.1 * depthK})`);
+    rightLens.addColorStop(0.28, `rgba(0,0,0,${0.02 + 0.03 * depthK})`);
     rightLens.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = rightLens;
     ctx.fillRect(x + w - edge, y, edge, h);
@@ -203,15 +209,15 @@ function Index() {
     // Local internal refraction, not an outer glow: soft light gathers in
     // the upper-left and lower-right curves as it does in a water droplet.
     const lightCorner = ctx.createRadialGradient(x + r * 0.72, y + r * 0.68, 0, x + r * 0.72, y + r * 0.68, edge * 1.45);
-    lightCorner.addColorStop(0, "rgba(255,255,255,0.13)");
-    lightCorner.addColorStop(0.42, "rgba(255,255,255,0.035)");
+    lightCorner.addColorStop(0, `rgba(255,255,255,${0.08 + 0.14 * depthK})`);
+    lightCorner.addColorStop(0.42, `rgba(255,255,255,${0.02 + 0.04 * depthK})`);
     lightCorner.addColorStop(1, "rgba(255,255,255,0)");
     ctx.fillStyle = lightCorner;
     ctx.fillRect(x, y, edge * 2, edge * 2);
 
     const darkCorner = ctx.createRadialGradient(x + w - r * 0.7, y + h - r * 0.65, 0, x + w - r * 0.7, y + h - r * 0.65, edge * 1.6);
-    darkCorner.addColorStop(0, "rgba(0,0,0,0.055)");
-    darkCorner.addColorStop(0.5, "rgba(0,0,0,0.018)");
+    darkCorner.addColorStop(0, `rgba(0,0,0,${0.03 + 0.06 * depthK})`);
+    darkCorner.addColorStop(0.5, `rgba(0,0,0,${0.01 + 0.02 * depthK})`);
     darkCorner.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = darkCorner;
     ctx.fillRect(x + w - edge * 2, y + h - edge * 2, edge * 2, edge * 2);
