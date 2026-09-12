@@ -563,20 +563,20 @@ function Index() {
     setStreak(10);
     setContent("none");
     if (v === "clear") {
-      setOpacity(8);
-      setBlur(14);
-      setFrost(2);
-      setSheen(26);
+      setOpacity(3);
+      setBlur(3);
+      setFrost(0);
+      setSheen(8);
     } else if (v === "frosted") {
-      setOpacity(22);
-      setBlur(34);
-      setFrost(13);
-      setSheen(18);
+      setOpacity(14);
+      setBlur(24);
+      setFrost(9);
+      setSheen(10);
     } else {
-      setOpacity(13);
-      setBlur(22);
-      setFrost(5);
-      setSheen(22);
+      setOpacity(6);
+      setBlur(7);
+      setFrost(1);
+      setSheen(9);
     }
   }
 
