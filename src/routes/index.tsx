@@ -103,7 +103,7 @@ function Index() {
 
   const pad = () =>
     simple
-      ? Math.max(40, Math.min(w, h) * 0.5)
+      ? 12
       : Math.max(
           shadow ? shadowBlur * 2 : 0,
           glow > 0 ? glowSize * 2.2 : 0,
@@ -135,117 +135,96 @@ function Index() {
   }
 
 
-  // ---------------------------------------------------------------
-  // Real Apple-style liquid glass (preset mode): almost fully clear
-  // body + a thick refracting 3D edge with a bright/dark/bright
-  // profile and directional light on two opposite corners.
-  // ---------------------------------------------------------------
+  // Borderless liquid lens used by preset mode. All shading stays inside
+  // the shape: there is intentionally no outline, glow, or outside shadow.
   function drawApple(ctx: CanvasRenderingContext2D, x: number, y: number) {
     const r = Math.min(w, h) / 2;
     const path = new Path2D();
     path.roundRect(x, y, w, h, r);
-    const cx = x + w / 2;
-    const cy = y + h / 2;
     const clear = preset === "clear";
     const frosted = preset === "frosted";
-    const thick = Math.max(8, Math.min(w, h) * (frosted ? 0.2 : clear ? 0.14 : 0.17));
-
-    // directional axis (light from top-left, bounce bottom-right)
-    const rad = (315 * Math.PI) / 180;
-    const len = Math.max(w, h) / 2;
-    const axis = (a0: number, aMid: number, a1: number) => {
-      const g2 = ctx.createLinearGradient(
-        cx - Math.cos(rad) * len,
-        cy - Math.sin(rad) * len,
-        cx + Math.cos(rad) * len,
-        cy + Math.sin(rad) * len,
-      );
-      g2.addColorStop(0, `rgba(255,255,255,${a0})`);
-      g2.addColorStop(0.42, `rgba(255,255,255,${aMid})`);
-      g2.addColorStop(0.58, `rgba(255,255,255,${aMid})`);
-      g2.addColorStop(1, `rgba(255,255,255,${a1})`);
-      return g2;
-    };
-
-    // soft contact shadow
-    ctx.save();
-    ctx.shadowColor = `rgba(0,0,0,0.22)`;
-    ctx.shadowBlur = Math.max(24, Math.min(w, h) * 0.28);
-    ctx.shadowOffsetY = Math.max(8, Math.min(w, h) * 0.09);
-    ctx.fillStyle = "rgba(0,0,0,0.9)";
-    ctx.fill(path);
-    ctx.globalCompositeOperation = "destination-out";
-    ctx.fill(path);
-    ctx.restore();
+    const edge = Math.max(18, Math.min(w, h) * 0.24);
+    const bodyAlpha = frosted ? 0.11 : clear ? 0.018 : 0.045;
 
     ctx.save();
     ctx.clip(path);
 
-    // body: barely-there tint, clearer in the middle
-    const bodyA = frosted ? 0.16 : clear ? 0.03 : 0.07;
-    const bg = ctx.createLinearGradient(x, y, x, y + h);
-    bg.addColorStop(0, hex(tint, bodyA * 1.5));
-    bg.addColorStop(0.5, hex(tint, bodyA * 0.5));
-    bg.addColorStop(1, hex(tint, bodyA * 1.1));
-    ctx.fillStyle = bg;
+    // Nearly clear body. The center remains optically quiet so the video
+    // underneath stays visible rather than turning into a milky panel.
+    ctx.fillStyle = hex(tint, bodyAlpha);
     ctx.fillRect(x, y, w, h);
+
+    // A soft convex lens: transparent center with a restrained meniscus
+    // toward the perimeter. These are broad fields, never boundary strokes.
+    const dome = ctx.createRadialGradient(
+      x + w * 0.43,
+      y + h * 0.38,
+      Math.min(w, h) * 0.08,
+      x + w * 0.5,
+      y + h * 0.5,
+      Math.max(w, h) * 0.66,
+    );
+    dome.addColorStop(0, hex(tint, clear ? 0.012 : 0.025));
+    dome.addColorStop(0.58, "rgba(255,255,255,0)");
+    dome.addColorStop(0.84, "rgba(0,0,0,0.025)");
+    dome.addColorStop(1, "rgba(0,0,0,0.11)");
+    ctx.fillStyle = dome;
+    ctx.fillRect(x, y, w, h);
+
+    const topLens = ctx.createLinearGradient(x, y, x, y + edge);
+    topLens.addColorStop(0, hex(tint, clear ? 0.11 : 0.15));
+    topLens.addColorStop(0.18, hex(tint, clear ? 0.055 : 0.075));
+    topLens.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = topLens;
+    ctx.fillRect(x, y, w, edge);
+
+    const bottomLens = ctx.createLinearGradient(x, y + h, x, y + h - edge * 1.15);
+    bottomLens.addColorStop(0, "rgba(255,255,255,0.19)");
+    bottomLens.addColorStop(0.2, hex(tint, 0.075));
+    bottomLens.addColorStop(0.62, "rgba(0,0,0,0.025)");
+    bottomLens.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = bottomLens;
+    ctx.fillRect(x, y + h - edge * 1.15, w, edge * 1.15);
+
+    const leftLens = ctx.createLinearGradient(x, y, x + edge, y);
+    leftLens.addColorStop(0, "rgba(255,255,255,0.12)");
+    leftLens.addColorStop(0.28, hex(tint, 0.045));
+    leftLens.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = leftLens;
+    ctx.fillRect(x, y, edge, h);
+
+    const rightLens = ctx.createLinearGradient(x + w, y, x + w - edge, y);
+    rightLens.addColorStop(0, "rgba(0,0,0,0.095)");
+    rightLens.addColorStop(0.28, "rgba(0,0,0,0.035)");
+    rightLens.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = rightLens;
+    ctx.fillRect(x + w - edge, y, edge, h);
+
+    // Local internal refraction, not an outer glow: soft light gathers in
+    // the upper-left and lower-right curves as it does in a water droplet.
+    const lightCorner = ctx.createRadialGradient(x + r * 0.72, y + r * 0.68, 0, x + r * 0.72, y + r * 0.68, edge * 1.45);
+    lightCorner.addColorStop(0, "rgba(255,255,255,0.13)");
+    lightCorner.addColorStop(0.42, "rgba(255,255,255,0.035)");
+    lightCorner.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = lightCorner;
+    ctx.fillRect(x, y, edge * 2, edge * 2);
+
+    const darkCorner = ctx.createRadialGradient(x + w - r * 0.7, y + h - r * 0.65, 0, x + w - r * 0.7, y + h - r * 0.65, edge * 1.6);
+    darkCorner.addColorStop(0, "rgba(0,0,0,0.055)");
+    darkCorner.addColorStop(0.5, "rgba(0,0,0,0.018)");
+    darkCorner.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = darkCorner;
+    ctx.fillRect(x + w - edge * 2, y + h - edge * 2, edge * 2, edge * 2);
 
     if (frosted) {
       const n = Math.floor((w * h) / 1400);
-      ctx.globalAlpha = 0.05;
+      ctx.globalAlpha = 0.025;
       for (let i = 0; i < n; i++) {
         ctx.fillStyle = Math.random() > 0.5 ? "#ffffff" : "#000000";
         ctx.fillRect(x + Math.random() * w, y + Math.random() * h, 1.2, 1.2);
       }
       ctx.globalAlpha = 1;
     }
-
-    // thick refracting edge: bright rim -> dark dip -> soft inner bounce
-    const steps = Math.max(24, Math.round(thick * 2));
-    for (let i = 0; i < steps; i++) {
-      const u = i / (steps - 1);
-      const inset = u * thick;
-      const bright =
-        Math.exp(-Math.pow((u - 0.04) / 0.1, 2)) * 0.75 +
-        Math.exp(-Math.pow((u - 0.6) / 0.3, 2)) * 0.14;
-      const dark = Math.exp(-Math.pow((u - 0.26) / 0.13, 2)) * 0.26;
-      const rp = new Path2D();
-      rp.roundRect(
-        x + inset,
-        y + inset,
-        Math.max(1, w - inset * 2),
-        Math.max(1, h - inset * 2),
-        Math.max(0, r - inset),
-      );
-      ctx.lineWidth = thick / steps + 1.2;
-      if (dark > 0.004) {
-        ctx.strokeStyle = `rgba(0,0,0,${dark})`;
-        ctx.stroke(rp);
-      }
-      if (bright > 0.004) {
-        ctx.strokeStyle = axis(bright, bright * 0.22, bright * 0.85);
-        ctx.stroke(rp);
-      }
-    }
-
-    // gentle top sheen and bottom refracted bounce
-    const sh = ctx.createLinearGradient(x, y, x, y + h * 0.5);
-    sh.addColorStop(0, `rgba(255,255,255,${clear ? 0.14 : 0.18})`);
-    sh.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = sh;
-    ctx.fillRect(x, y, w, h * 0.5);
-
-    const bh = Math.min(h * 0.35, thick * 1.6);
-    const bo = ctx.createLinearGradient(x, y + h, x, y + h - bh);
-    bo.addColorStop(0, "rgba(255,255,255,0.22)");
-    bo.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = bo;
-    ctx.fillRect(x, y + h - bh, w, bh);
-
-    // crisp outer hairline, brightest on the two lit corners
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = axis(0.95, 0.3, 0.8);
-    ctx.stroke(path);
     ctx.restore();
   }
 
@@ -558,46 +537,46 @@ function Index() {
     reader.readAsDataURL(file);
   }
 
-  // Apple-style tuned presets: restrained specular, thin bright hairline,
-  // soft wide shadow, gentle inner bevel — no heavy glow.
+  // Preset values also reset hidden advanced controls so returning to the
+  // editor starts from a neutral, borderless liquid-glass configuration.
   function applyApplePreset(v: Preset) {
     setRadius(Math.round(Math.min(w, h) * 0.45));
     setRimAngle(300);
     setBevel(Math.max(14, Math.round(Math.min(w, h) * 0.09)));
     setBevelStrength(62);
     setRimLight(58);
-    setBorderWidth(1);
-    setBorderOpacity(46);
-    setGlow(10);
+    setBorderWidth(0);
+    setBorderOpacity(0);
+    setGlow(0);
     setGlowSize(20);
     setGlowColor("#ffffff");
     setGlowBloom(22);
-    setCornerGlow(34);
+    setCornerGlow(0);
     setCornerSpread(24);
     setCornerColor("#ffffff");
     setDepth(34);
     setCaustic(20);
     setDroplet(false);
-    setShadow(true);
+    setShadow(false);
     setShadowBlur(46);
     setShadowOpacity(20);
     setStreak(10);
     setContent("none");
     if (v === "clear") {
-      setOpacity(8);
-      setBlur(14);
-      setFrost(2);
-      setSheen(26);
+      setOpacity(3);
+      setBlur(3);
+      setFrost(0);
+      setSheen(8);
     } else if (v === "frosted") {
-      setOpacity(22);
-      setBlur(34);
-      setFrost(13);
-      setSheen(18);
+      setOpacity(14);
+      setBlur(24);
+      setFrost(9);
+      setSheen(10);
     } else {
-      setOpacity(13);
-      setBlur(22);
-      setFrost(5);
-      setSheen(22);
+      setOpacity(6);
+      setBlur(7);
+      setFrost(1);
+      setSheen(9);
     }
   }
 
