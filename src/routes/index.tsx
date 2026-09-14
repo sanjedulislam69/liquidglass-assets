@@ -172,7 +172,7 @@ function Index() {
     );
     dome.addColorStop(0, hex(tint, clear ? 0.012 : 0.025));
     dome.addColorStop(0.58, "rgba(255,255,255,0)");
-    dome.addColorStop(0.84, "rgba(0,0,0,0.02 + 0.04 * depthK)");
+    dome.addColorStop(0.84, `rgba(0,0,0,${0.02 + 0.04 * depthK})`);
     dome.addColorStop(1, `rgba(0,0,0,${0.06 + 0.14 * depthK})`);
     ctx.fillStyle = dome;
     ctx.fillRect(x, y, w, h);
@@ -586,10 +586,8 @@ function Index() {
     }
   }
 
-  // in preset mode the corner radius always follows the size (Apple capsule feel)
-  useEffect(() => {
-    if (simple) setRadius(Math.round(Math.min(w, h) * 0.45));
-  }, [simple, w, h]);
+  // Preset mode leaves corner roundness to the user; loading a preset only
+  // suggests a capsule-like starting radius.
 
   // measure the stage column so the background can be fit to it
   useEffect(() => {
@@ -677,6 +675,12 @@ function Index() {
             </Row>
             <Row label={`Height ${h}px`}>
               <input type="range" min={40} max={1080} value={h} onChange={(e) => setH(+e.target.value)} className="w-full" />
+            </Row>
+            <Row label={`Depth ${depth}%`}>
+              <input type="range" min={0} max={100} value={depth} onChange={(e) => setDepth(+e.target.value)} className="w-full" />
+            </Row>
+            <Row label={`Roundness ${radius}px`}>
+              <input type="range" min={0} max={Math.round(Math.min(w, h) / 2)} value={Math.min(radius, Math.round(Math.min(w, h) / 2))} onChange={(e) => setRadius(+e.target.value)} className="w-full" />
             </Row>
             <Row label="Glass color">
               <input type="color" value={tint} onChange={(e) => setTint(e.target.value)} />
