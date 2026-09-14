@@ -692,7 +692,7 @@ function Index() {
               Load preset
             </button>
             <p className="mt-2 text-xs text-muted-foreground">
-              Preset mode hides all advanced controls — set size and color, then export.
+              Preset mode hides all advanced controls — set size, depth, roundness and color, then export.
             </p>
           </section>
 
